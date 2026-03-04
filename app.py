@@ -1,83 +1,54 @@
-<<<<<<< HEAD
-from flask import Flask, request, jsonify
+from flask import Flask,request,jsonify
 from flask_cors import CORS
+import joblib
+import numpy as np
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-def detect_phishing(url):
-    suspicious_keywords = ['login', 'verify', 'secure', 'account', 'update', 'bank', 'signin']
-    
-    score = 0
+model = joblib.load("model.pkl")
 
-    # Keyword scoring
-    for word in suspicious_keywords:
-        if word in url.lower():
-            score += 15
 
-    # Long URL penalty
-    if len(url) > 50:
-        score += 10
+def extract_features(url):
 
-    # Too many hyphens
-    if url.count('-') > 3:
-        score += 10
+    return np.array([[
+        len(url),
+        1 if "login" in url.lower() else 0,
+        url.count("."),
+        url.count("-")
+    ]])
 
-    # Cap score at 100
-    confidence = min(score, 100)
 
-    if confidence >= 40:
-        return {
-            "result": "Phishing Website",
-            "confidence": confidence
-        }
+@app.route("/")
+def home():
+    return "Phishing ML API Running"
+
+
+@app.route("/predict",methods=["POST"])
+def predict():
+
+    data = request.get_json()
+    url = data["url"]
+
+    features = extract_features(url)
+
+    prediction = model.predict(features)[0]
+    probability = model.predict_proba(features)[0][1]
+
+    confidence = round(probability*100,2)
+
+    if prediction==1:
+        result="Phishing Website"
     else:
-        return {
-            "result": "Legitimate Website",
-            "confidence": 100 - confidence
-        }
+        result="Legitimate Website"
 
-@app.route('/')
-def home():
-    return "Phishing Detection ML API is Running"
+    return jsonify({
+        "result":result,
+        "confidence":confidence
+    })
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json()
-    url = data.get("url")
 
-    if not url:
-        return jsonify({"error": "No URL provided"}), 400
-
-    prediction = detect_phishing(url)
-    return jsonify(prediction)
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-=======
-from flask import Flask, request, jsonify
-import os
-
-app = Flask(__name__)
-
-def detect_phishing(url):
-    keywords = ['login', 'verify', 'secure', 'account', 'update']
-    for k in keywords:
-        if k in url.lower():
-            return "Phishing Website"
-    return "Legitimate Website"
-
-@app.route('/')
-def home():
-    return "ML API is running"
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json()
-    return jsonify({"result": detect_phishing(data['url'])})
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
->>>>>>> main
+if __name__=="__main__":
+    port=int(os.environ.get("PORT",5000))
+    app.run(host="0.0.0.0",port=port)
