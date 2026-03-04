@@ -27,28 +27,20 @@ def home():
 
 @app.route("/predict",methods=["POST"])
 def predict():
-
     data = request.get_json()
     url = data["url"]
-
     features = extract_features(url)
-
     prediction = model.predict(features)[0]
     probability = model.predict_proba(features)[0][1]
-
     confidence = round(probability*100,2)
-
     if prediction==1:
         result="Phishing Website"
     else:
         result="Legitimate Website"
-
     return jsonify({
         "result":result,
         "confidence":confidence
     })
-
-
 if __name__=="__main__":
     port=int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0",port=port)
