@@ -1,30 +1,29 @@
-from flask import Flask,request,jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify
 import joblib
-import numpy as np
-import os
-
 app = Flask(__name__)
-CORS(app)
-
+# Load trained ML model
 model = joblib.load("model.pkl")
-
-
 def extract_features(url):
-
     return np.array([[
         len(url),
         1 if "login" in url.lower() else 0,
         url.count("."),
         url.count("-")
     ]])
-
-
+def extract_features(url):
+    features = [
+        len(url),
+        url.count('.'),
+        url.count('-'),
+        1 if "login" in url.lower() else 0,
+        1 if "secure" in url.lower() else 0,
+        1 if "verify" in url.lower() else 0,
+        1 if "account" in url.lower() else 0
+    ]
+    return [features]
 @app.route("/")
 def home():
     return "Phishing ML API Running"
-
-
 @app.route("/predict",methods=["POST"])
 def predict():
     data = request.get_json()
