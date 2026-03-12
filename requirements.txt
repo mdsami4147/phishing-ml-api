@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-flask
-gunicorn
-flask-cors
-=======
 flask
 flask-cors
 gunicorn
->>>>>>> main
+pandas
+scikit-learn
+joblib
