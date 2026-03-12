@@ -7,7 +7,7 @@ predictions = model.predict(X_test)
 accuracy = accuracy_score(y_test, predictions)
 print("Model Accuracy:", accuracy)
 # Load dataset
-df = pd.read_csv("phishing_dataset.csv")
+df = pd.read_csv("phishingurl_Dataset.csv")
 # Separate features and label
 X = df.drop("label", axis=1)
 y = df["label"]
