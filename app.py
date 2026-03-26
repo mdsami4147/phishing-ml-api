@@ -4,15 +4,24 @@ import numpy as np
 app = Flask(__name__)
 model = joblib.load("model.pkl")
 def extract_features(url):
-    features = [
+
+    url = url.lower()
+
+    return [[
         len(url),
         url.count('.'),
         url.count('-'),
-        1 if "login" in url.lower() else 0,
-        1 if "secure" in url.lower() else 0,
-        1 if "verify" in url.lower() else 0,
-        1 if "account" in url.lower() else 0
-    ]
+        url.count('@'),
+        url.count('//'),
+        url.count('='),
+        1 if "login" in url else 0,
+        1 if "secure" in url else 0,
+        1 if "verify" in url else 0,
+        1 if "account" in url else 0,
+        1 if "update" in url else 0,
+        1 if "bank" in url else 0,
+        1 if "paypal" in url else 0
+    ]]
     return [features]
 @app.route("/")
 def home():
@@ -25,14 +34,15 @@ def predict():
     features = extract_features(url)
     prediction = model.predict(features)[0]
     probability = model.predict_proba(features)[0][1]
-    # Convert probability to percentage
-    confidence = round(probability * 100, 2)
-    # Adjust confidence ranges for realism
-    if confidence < 30:
+
+confidence = round(probability * 100, 2)
+
+if confidence < 30:
     confidence = round(confidence * 0.8, 2)
-    elif confidence > 80:
+elif confidence > 80:
     confidence = round(confidence * 1.05, 2)
-    confidence = min(confidence, 99.9)
+
+confidence = min(confidence, 99.9)
     if prediction == 1:
         result = "Phishing Website"
     else:
