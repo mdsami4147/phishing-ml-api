@@ -1,3 +1,5 @@
+from multiprocessing import reduction
+
 from flask import Flask, request, jsonify
 import joblib
 import numpy as np
@@ -29,11 +31,13 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
-    url = data["url"]
-    features = extract_features(url)
-    prediction = model.predict(features)[0]
-    probability = model.predict_proba(features)[0][1]
+ data = request.get_json()
+url = data["url"]
+
+features = extract_features(url)
+
+prediction = model.predict(features)[0]
+probability = model.predict_proba(features)[0][1]
 
 confidence = round(probability * 100, 2)
 
@@ -43,11 +47,13 @@ elif confidence > 80:
     confidence = round(confidence * 1.05, 2)
 
 confidence = min(confidence, 99.9)
-    if prediction == 1:
-        result = "Phishing Website"
-    else:
-        result = "Legitimate Website"
-    return jsonify({
-        "result": result,
-        "confidence": confidence
-    })
+
+if prediction == 1:
+    result = "Phishing Website"
+else:
+    result = "Legitimate Website"
+
+return jsonify({
+    "result": result,
+    "confidence": confidence
+})
