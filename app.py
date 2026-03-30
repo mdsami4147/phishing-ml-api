@@ -1,10 +1,22 @@
 from multiprocessing import reduction
 
 from flask import Flask, request, jsonify
-import joblib
 import numpy as np
+import os
+import joblib
+
 app = Flask(__name__)
-model = joblib.load("model.pkl")
+
+try:
+    if os.path.exists("model.pkl"):
+        model = joblib.load("model.pkl")
+        print("Model loaded successfully")
+    else:
+        print("model.pkl NOT FOUND")
+        model = None
+except Exception as e:
+    print("Model load error:", e)
+    model = None
 def extract_features(url):
 
     url = url.lower()
@@ -57,3 +69,7 @@ return jsonify({
     "result": result,
     "confidence": confidence
 })
+if model is None:
+    return jsonify({
+        "error": "Model not loaded"
+    })
