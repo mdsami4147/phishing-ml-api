@@ -1,12 +1,10 @@
-from multiprocessing import reduction
-
 from flask import Flask, request, jsonify
-import numpy as np
-import os
 import joblib
+import os
 
 app = Flask(__name__)
 
+# Safe model loading
 try:
     if os.path.exists("model.pkl"):
         model = joblib.load("model.pkl")
@@ -17,8 +15,9 @@ try:
 except Exception as e:
     print("Model load error:", e)
     model = None
-def extract_features(url):
 
+
+def extract_features(url):
     url = url.lower()
 
     return [[
@@ -36,40 +35,46 @@ def extract_features(url):
         1 if "bank" in url else 0,
         1 if "paypal" in url else 0
     ]]
-    return [features]
+
+
 @app.route("/")
 def home():
-    return "phishing ML API Running successfully"
+    return "Phishing ML API Running Successfully"
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
- data = request.get_json()
-url = data["url"]
 
-features = extract_features(url)
+    if model is None:
+        return jsonify({"error": "Model not loaded"})
 
-prediction = model.predict(features)[0]
-probability = model.predict_proba(features)[0][1]
+    data = request.get_json()
+    url = data["url"]
 
-confidence = round(probability * 100, 2)
+    features = extract_features(url)
 
-if confidence < 30:
-    confidence = round(confidence * 0.8, 2)
-elif confidence > 80:
-    confidence = round(confidence * 1.05, 2)
+    prediction = model.predict(features)[0]
+    probability = model.predict_proba(features)[0][1]
 
-confidence = min(confidence, 99.9)
+    confidence = round(probability * 100, 2)
 
-if prediction == 1:
-    result = "Phishing Website"
-else:
-    result = "Legitimate Website"
+    if confidence < 30:
+        confidence = round(confidence * 0.8, 2)
+    elif confidence > 80:
+        confidence = round(confidence * 1.05, 2)
 
-return jsonify({
-    "result": result,
-    "confidence": confidence
-})
-if model is None:
+    confidence = min(confidence, 99.9)
+
+    if prediction == 1:
+        result = "Phishing Website"
+    else:
+        result = "Legitimate Website"
+
     return jsonify({
-        "error": "Model not loaded"
+        "result": result,
+        "confidence": confidence
     })
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
