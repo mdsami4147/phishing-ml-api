@@ -1,28 +1,12 @@
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-
-    if (changeInfo.status === "complete" && tab.url && tab.url.startsWith("http")) {
-
-        fetch("https://phishing-ml-api-gl9k.onrender.com/predict", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ url: tab.url })
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log("API Response:", data);  // 👈 IMPORTANT
-
-            chrome.scripting.executeScript({
-                target: { tabId: tabId },
-                func: showBanner,
-                args: [data]
-            });
-        })
-        .catch(err => console.error("API Error:", err));
+window.addEventListener("message", (event) => {
+    if (event.data.type === "SHOW_BANNER") {
+        showBanner(event.data.payload);
     }
 });
+
 function showBanner(data) {
+
+    console.log("Banner received:", data);
 
     if (document.getElementById("security-banner")) return;
 
@@ -32,27 +16,20 @@ function showBanner(data) {
     const isPhishing = data.result.includes("Phishing");
 
     banner.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-
+        <div style="display:flex;justify-content:space-between;align-items:center;font-family:sans-serif;">
             <div>
-                ${isPhishing ? "⚠ Phishing Detected" : "✔ Safe Website"} <br>
+                ${isPhishing ? "⚠ Phishing Website Detected" : "✔ Safe Website"}<br>
                 Confidence: ${data.confidence}% | Risk: ${data.risk_level}
             </div>
-
             <div>
-                ${isPhishing ? `
-                    <button id="backBtn">Go Back</button>
-                    <button id="proceedBtn">Proceed</button>
-                ` : ""}
-
                 <button id="closeBtn">✖</button>
             </div>
-
         </div>
     `;
 
     banner.style.position = "fixed";
     banner.style.top = "0";
+    banner.style.left = "0";
     banner.style.width = "100%";
     banner.style.padding = "12px";
     banner.style.color = "white";
@@ -65,9 +42,4 @@ function showBanner(data) {
     document.body.prepend(banner);
 
     document.getElementById("closeBtn").onclick = () => banner.remove();
-
-    if (isPhishing) {
-        document.getElementById("backBtn").onclick = () => window.history.back();
-        document.getElementById("proceedBtn").onclick = () => banner.remove();
-    }
 }
