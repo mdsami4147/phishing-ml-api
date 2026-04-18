@@ -6,16 +6,14 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Load model safely
+model = None
+
 try:
     model_path = os.path.join(os.path.dirname(__file__), "model.pkl")
     model = joblib.load(model_path)
     print("Model loaded successfully")
 except Exception as e:
     print("Model load error:", e)
-    model = None
-
-
 # Feature extraction
 def extract_features(url):
     url = url.lower()
@@ -41,59 +39,50 @@ def extract_features(url):
 @app.route("/")
 def home():
     return "Phishing ML API Running Successfully 🚀"
-
-
-# Prediction route
 @app.route("/predict", methods=["POST"])
 def predict():
+    try:
+        if model is None:
+            return jsonify({"error": "Model not loaded"}), 500
 
-    if model is None:
-        return jsonify({"error": "Model not loaded"})
+        data = request.get_json()
 
-    data = request.get_json()
+        if not data or "url" not in data:
+            return jsonify({"error": "No URL provided"}), 400
 
-    if not data or "url" not in data:
-        return jsonify({"error": "No URL provided"})
+        url = data["url"]
 
-    url = data["url"]
+        features = extract_features(url)
 
-    features = extract_features(url)
+        prediction = model.predict(features)[0]
+        probability = model.predict_proba(features)[0][1]
 
-    prediction = model.predict(features)[0]
-    probability = model.predict_proba(features)[0][1]
+        confidence = round(probability * 100, 2)
 
-    confidence = round(probability * 100, 2)
+        # Adjust confidence
+        if confidence < 30:
+            confidence = round(confidence * 0.8, 2)
+        elif confidence > 80:
+            confidence = round(confidence * 1.05, 2)
 
-    # Adjust confidence (realistic)
-    if confidence < 30:
-        confidence = round(confidence * 0.8, 2)
-    elif confidence > 80:
-        confidence = round(confidence * 1.05, 2)
+        confidence = min(confidence, 99.9)
 
-    confidence = min(confidence, 99.9)
+        # Risk level
+        if confidence >= 75:
+            risk_level = "High"
+        elif confidence >= 40:
+            risk_level = "Medium"
+        else:
+            risk_level = "Low"
 
-    # Risk levels
-    if confidence >= 75:
-        risk_level = "High"
-    elif confidence >= 40:
-        risk_level = "Medium"
-    else:
-        risk_level = "Low"
+        result = "Phishing Website" if prediction == 1 else "Legitimate Website"
 
-    # Result
-    if prediction == 1:
-        result = "Phishing Website"
-    else:
-        result = "Legitimate Website"
+        return jsonify({
+            "result": result,
+            "confidence": confidence,
+            "risk_level": risk_level
+        })
 
-    return jsonify({
-        "result": result,
-        "confidence": confidence,
-        "risk_level": risk_level
-    })
-
-
-# Render port fix
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    except Exception as e:
+        print("ERROR:", e)   # 👈 THIS WILL SHOW IN RENDER LOGS
+        return jsonify({"error": str(e)}), 500
