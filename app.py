@@ -18,21 +18,63 @@ except Exception as e:
 def extract_features(url):
     url = url.lower()
 
-    return [[
-        len(url),
-        url.count('.'),
+    features = [
+        len(url),                     # URLLength
+        url.count('.'),              # dots
         url.count('-'),
         url.count('@'),
         url.count('//'),
         url.count('='),
+        url.count('?'),
+        url.count('&'),
+        url.count('%'),
+        url.count('_'),
+        url.count('~'),
+        url.count('#'),
+        url.count('$'),
+        url.count('*'),
+        url.count(','),
+        url.count(';'),
+        url.count('+'),
+        url.count('!'),
+        url.count(':'),
+        url.count('/'),
+
         1 if "login" in url else 0,
         1 if "secure" in url else 0,
         1 if "verify" in url else 0,
         1 if "account" in url else 0,
         1 if "update" in url else 0,
         1 if "bank" in url else 0,
-        1 if "paypal" in url else 0
-    ]]
+        1 if "paypal" in url else 0,
+        1 if "signin" in url else 0,
+        1 if "ebay" in url else 0,
+        1 if "amazon" in url else 0,
+
+        url.startswith("https"),
+        url.startswith("http"),
+        url.count("www"),
+        url.count(".com"),
+        url.count(".net"),
+        url.count(".org"),
+        url.count(".xyz"),
+        url.count(".ru"),
+        url.count(".tk"),
+        url.count(".ml"),
+
+        sum(c.isdigit() for c in url),
+        sum(c.isalpha() for c in url),
+        len(set(url)),
+        url.count(".."),
+        url.count("---"),
+        url.count("http"),
+        url.count("https"),
+        url.count("://"),
+        url.count("php"),
+        url.count("html")
+    ]
+
+    return [features]
 
 
 # Home route
@@ -86,3 +128,4 @@ def predict():
     except Exception as e:
         print("ERROR:", e)   # 👈 THIS WILL SHOW IN RENDER LOGS
         return jsonify({"error": str(e)}), 500
+    print("Model excepts features:", model.n_features_in_)
