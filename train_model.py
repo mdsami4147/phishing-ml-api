@@ -18,7 +18,6 @@ data = {
     "update": [0, 1, 0, 0],
     "bank": [0, 0, 1, 0],
     "paypal": [0, 1, 0, 0],
-    "label": [0, 1, 1, 0]
 }
 
 df = pd.DataFrame(data)
@@ -31,4 +30,4 @@ model.fit(X, y)
 
 joblib.dump(model, "model.pkl")
 
-print("✅ Model trained with 13 features!")
+print("Model trained successfully!!")
