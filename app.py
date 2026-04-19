@@ -1,131 +1,93 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
+import re
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-model = None
+model = joblib.load("model.pkl")
 
-try:
-    model_path = os.path.join(os.path.dirname(__file__), "model.pkl")
-    model = joblib.load(model_path)
-    print("Model loaded successfully")
-except Exception as e:
-    print("Model load error:", e)
-# Feature extraction
+
 def extract_features(url):
-    url = url.lower()
+    url = str(url).lower()
 
-    features = [
-        len(url),                     # URLLength
-        url.count('.'),              # dots
+    return [[
+        len(url),
+        url.count('.'),
         url.count('-'),
         url.count('@'),
         url.count('//'),
         url.count('='),
         url.count('?'),
-        url.count('&'),
-        url.count('%'),
-        url.count('_'),
-        url.count('~'),
-        url.count('#'),
-        url.count('$'),
-        url.count('*'),
-        url.count(','),
-        url.count(';'),
-        url.count('+'),
-        url.count('!'),
-        url.count(':'),
-        url.count('/'),
-
+        sum(c.isdigit() for c in url),
+        1 if url.startswith("https") else 0,
         1 if "login" in url else 0,
-        1 if "secure" in url else 0,
         1 if "verify" in url else 0,
+        1 if "secure" in url else 0,
         1 if "account" in url else 0,
-        1 if "update" in url else 0,
         1 if "bank" in url else 0,
         1 if "paypal" in url else 0,
-        1 if "signin" in url else 0,
-        1 if "ebay" in url else 0,
-        1 if "amazon" in url else 0,
-
-        url.startswith("https"),
-        url.startswith("http"),
-        url.count("www"),
-        url.count(".com"),
-        url.count(".net"),
-        url.count(".org"),
-        url.count(".xyz"),
-        url.count(".ru"),
-        url.count(".tk"),
-        url.count(".ml"),
-
-        sum(c.isdigit() for c in url),
-        sum(c.isalpha() for c in url),
-        len(set(url)),
-        url.count(".."),
-        url.count("---"),
-        url.count("http"),
-        url.count("https"),
-        url.count("://"),
-        url.count("php"),
-        url.count("html")
-    ]
-
-    return [features]
+        1 if re.search(r'\d+\.\d+\.\d+\.\d+', url) else 0
+    ]]
 
 
-# Home route
 @app.route("/")
 def home():
-    return "Phishing ML API Running Successfully 🚀"
+    return "AI Phishing Detector Running"
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        if model is None:
-            return jsonify({"error": "Model not loaded"}), 500
-
         data = request.get_json()
-
-        if not data or "url" not in data:
-            return jsonify({"error": "No URL provided"}), 400
-
         url = data["url"]
 
         features = extract_features(url)
 
-        prediction = model.predict(features)[0]
-        probability = model.predict_proba(features)[0][1]
+        pred = model.predict(features)[0]
+        prob = model.predict_proba(features)[0][1]
 
-        confidence = round(probability * 100, 2)
+        url_lower = url.lower()
 
-        # Adjust confidence
-        if confidence < 30:
-            confidence = round(confidence * 0.8, 2)
-        elif confidence > 80:
-            confidence = round(confidence * 1.05, 2)
+        keywords = [
+         "login", "verify", "secure", "update",
+         "bank", "paypal", "signin", "account"
+        ]
 
-        confidence = min(confidence, 99.9)
+        keyword_hits = sum(word in url_lower for word in keywords)
 
-        # Risk level
+        # Hybrid boost
+        if keyword_hits >= 2:
+         prob = max(prob, 0.78)
+
+        if keyword_hits >= 4:
+         prob = max(prob, 0.92)
+
+        pred = 1 if prob >= 0.5 else 0
+
+        confidence = round(prob * 100, 2)
+
         if confidence >= 75:
-            risk_level = "High"
+            risk = "High"
         elif confidence >= 40:
-            risk_level = "Medium"
+            risk = "Medium"
         else:
-            risk_level = "Low"
+            risk = "Low"
 
-        result = "Phishing Website" if prediction == 1 else "Legitimate Website"
+        result = "Phishing Website" if pred == 1 else "Legitimate Website"
 
         return jsonify({
             "result": result,
             "confidence": confidence,
-            "risk_level": risk_level
+            "risk_level": risk
         })
 
     except Exception as e:
-        print("ERROR:", e)   # 👈 THIS WILL SHOW IN RENDER LOGS
         return jsonify({"error": str(e)}), 500
-    print("Model excepts features:", model.n_features_in_)
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
