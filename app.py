@@ -7,47 +7,47 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Load model
+# Load trained model
 model = joblib.load("model.pkl")
 
 
-# -------------------------
+# =====================================
 # Feature Extraction
-# -------------------------
+# =====================================
 def extract_features(url):
     url = str(url).lower()
 
     return [[
-        len(url),                          # 1 URL length
+        len(url),                          # 1 URL Length
         url.count('.'),                   # 2 dots
         url.count('-'),                   # 3 hyphens
-        url.count('@'),                   # 4 @ symbol
+        url.count('@'),                   # 4 @
         url.count('//'),                  # 5 //
         url.count('='),                   # 6 =
         url.count('?'),                   # 7 ?
         sum(c.isdigit() for c in url),    # 8 digits
-        1 if url.startswith("https") else 0,   # 9 HTTPS
-        1 if "login" in url else 0,            # 10
-        1 if "verify" in url else 0,           # 11
-        1 if "secure" in url else 0,           # 12
-        1 if "account" in url else 0,          # 13
-        1 if "bank" in url else 0,             # 14
-        1 if "paypal" in url else 0,           # 15
-        1 if re.search(r'\d+\.\d+\.\d+\.\d+', url) else 0  # 16 IP address
+        1 if url.startswith("https") else 0,
+        1 if "login" in url else 0,
+        1 if "verify" in url else 0,
+        1 if "secure" in url else 0,
+        1 if "account" in url else 0,
+        1 if "bank" in url else 0,
+        1 if "paypal" in url else 0,
+        1 if re.search(r'\d+\.\d+\.\d+\.\d+', url) else 0
     ]]
 
 
-# -------------------------
+# =====================================
 # Home Route
-# -------------------------
+# =====================================
 @app.route("/")
 def home():
-    return "🚀 Final Perfect Phishing API Running"
+    return "🚀 Smart Phishing Detection API Running"
 
 
-# -------------------------
-# Prediction Route
-# -------------------------
+# =====================================
+# Predict Route
+# =====================================
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -58,35 +58,66 @@ def predict():
 
         url = data["url"].strip().lower()
 
-        # Extract features
+        # ---------------------------------
+        # Trusted Websites Whitelist
+        # ---------------------------------
+        trusted_sites = [
+            "google.com",
+            "github.com",
+            "openai.com",
+            "microsoft.com",
+            "amazon.com",
+            "amazon.in",
+            "youtube.com",
+            "wikipedia.org",
+            "facebook.com",
+            "instagram.com",
+            "linkedin.com",
+            "twitter.com",
+            "x.com"
+        ]
+
+        if any(site in url for site in trusted_sites):
+            return jsonify({
+                "result": "Legitimate Website",
+                "confidence": 99.0,
+                "risk_level": "Low"
+            })
+
+        # ---------------------------------
+        # ML Prediction
+        # ---------------------------------
         features = extract_features(url)
 
-        # ML Prediction
         pred = model.predict(features)[0]
         prob = model.predict_proba(features)[0][1]
 
-        # -------------------------
-        # Hybrid Smart Detection
-        # -------------------------
+        # ---------------------------------
+        # Smart Rule Engine
+        # ---------------------------------
         keywords = [
             "login", "verify", "secure", "update",
-            "bank", "paypal", "signin", "account",
-            "password", "confirm", "wallet", "otp"
+            "bank", "paypal", "signin", "password",
+            "confirm", "wallet", "otp", "recover"
         ]
 
-        suspicious_tlds = [".tk", ".ml", ".ru", ".xyz", ".top", ".gq"]
+        suspicious_tlds = [
+            ".tk", ".ml", ".ru", ".xyz",
+            ".top", ".gq", ".cf"
+        ]
 
         keyword_hits = sum(1 for word in keywords if word in url)
         tld_hits = sum(1 for tld in suspicious_tlds if tld in url)
 
         has_ip = bool(re.search(r'\d+\.\d+\.\d+\.\d+', url))
-        many_hyphens = url.count('-') >= 2
-        long_url = len(url) > 60
+        many_hyphens = url.count('-') >= 3
+        long_url = len(url) >= 75
+        has_at = "@" in url
 
         score = keyword_hits + tld_hits
 
         if has_ip:
-            score += 2
+            score += 3
 
         if many_hyphens:
             score += 1
@@ -94,23 +125,26 @@ def predict():
         if long_url:
             score += 1
 
-        # -------------------------
-        # Final Decision Override
-        # -------------------------
-        if score >= 4:
+        if has_at:
+            score += 2
+
+        # ---------------------------------
+        # Final Decision
+        # ---------------------------------
+        if score >= 5:
             pred = 1
             prob = 0.96
 
-        elif score >= 2:
+        elif score >= 3 and prob >= 0.45:
             pred = 1
-            prob = max(prob, 0.85)
+            prob = max(prob, 0.82)
 
         else:
-            pred = 1 if prob >= 0.5 else 0
+            pred = 1 if prob >= 0.65 else 0
 
-        # -------------------------
-        # Confidence
-        # -------------------------
+        # ---------------------------------
+        # Confidence + Risk
+        # ---------------------------------
         confidence = round(prob * 100, 2)
 
         if confidence >= 75:
@@ -132,9 +166,9 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
-# -------------------------
+# =====================================
 # Run Server
-# -------------------------
+# =====================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
