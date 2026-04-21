@@ -75,6 +75,7 @@ def predict():
             "linkedin.com",
             "twitter.com",
             "x.com"
+            "osmania.ac.in"
         ]
 
         if any(site in url for site in trusted_sites):
