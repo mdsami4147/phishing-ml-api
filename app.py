@@ -154,7 +154,7 @@ def predict():
         else:
             risk = "Low"
 
-        result = "Phishing Website" if pred == 1 else "Legitimate Website"
+        result = "Legitimate Website" if pred == 1 else "Phishing Website"
 
         return jsonify({
             "result": result,
