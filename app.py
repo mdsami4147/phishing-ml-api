@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
@@ -52,30 +53,25 @@ def predict():
         url_lower = url.lower()
 
         keywords = [
-         "login", "verify", "secure", "update",
-         "bank", "paypal", "signin", "account"
-        ]
+    "login", "verify", "secure", "update",
+    "bank", "paypal", "signin", "account"
+]
 
-        keyword_hits = sum(word in url_lower for word in keywords)
+        keyword_hits = sum(1 for word in keywords if word in url_lower)
 
-        # Hybrid boost
-        if keyword_hits >= 2:
-         prob = max(prob, 0.78)
-
+        # HARD OVERRIDE
         if keyword_hits >= 4:
-         prob = max(prob, 0.92)
+         pred = 1
+         prob = 0.95
 
-        pred = 1 if prob >= 0.5 else 0
+        elif keyword_hits >= 2:
+         pred = 1
+         prob = 0.85
 
-        confidence = round(prob * 100, 2)
-
-        if confidence >= 75:
-            risk = "High"
-        elif confidence >= 40:
-            risk = "Medium"
+        elif prob >= 0.5:
+         pred = 1
         else:
-            risk = "Low"
-
+         pred = 0
         result = "Phishing Website" if pred == 1 else "Legitimate Website"
 
         return jsonify({
