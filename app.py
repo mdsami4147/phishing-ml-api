@@ -144,17 +144,23 @@ def predict():
             pred = 1 if prob >= 0.65 else 0
         confidence = round(prob * 100, 2)
 
-        if pred == 1:
-          if confidence >= 75:
-           risk = "High"
-          elif confidence >= 40:
-           risk = "Medium"
-          else:
-           risk = "Low"
-        else:
-         risk = "Safe"
+        if pred == 1:   # Phishing
+            if confidence >= 75:
+             risk = "High"
+            elif confidence >= 40:
+             risk = "Medium"
+            else:
+             risk = "Low"
 
-        result = "Legitimate Website" if pred == 1 else "Phishing Website"
+        else:           # Legitimate
+         if confidence >= 75:
+          risk = "Low"
+         elif confidence >= 40:
+          risk = "Medium"
+         else:
+          risk = "High"
+
+        result = "Phishing Website" if pred == 1 else "Legitimate Website"
 
         return jsonify({
             "result": result,
