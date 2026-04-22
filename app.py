@@ -142,18 +142,17 @@ def predict():
 
         else:
             pred = 1 if prob >= 0.65 else 0
-
-        # ---------------------------------
-        # Confidence + Risk
-        # ---------------------------------
         confidence = round(prob * 100, 2)
 
-        if confidence >= 75:
-            risk = "High"
-        elif confidence >= 40:
-            risk = "Medium"
+        if pred == 1:
+          if confidence >= 75:
+           risk = "High"
+          elif confidence >= 40:
+           risk = "Medium"
+          else:
+           risk = "Low"
         else:
-            risk = "Low"
+         risk = "Safe"
 
         result = "Legitimate Website" if pred == 1 else "Phishing Website"
 
