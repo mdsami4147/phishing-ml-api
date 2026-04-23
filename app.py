@@ -74,6 +74,7 @@ def predict():
             "instagram.com",
             "linkedin.com",
             "twitter.com",
+            "render.com"
             "x.com"
             "osmania.ac.in"
         ]
