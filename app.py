@@ -145,7 +145,7 @@ def predict():
             pred = 1 if prob >= 0.65 else 0
         confidence = round(prob * 100, 2)
 
-        if pred == 1:   # Phishing
+        if pred == 1: 
             if confidence >= 75:
              risk = "Low"
             elif confidence >= 40:
@@ -153,7 +153,7 @@ def predict():
             else:
              risk = "High"
 
-        else:           # Legitimate
+        else:          
           if confidence >= 75:
              risk = "High"
           elif confidence >= 40:
